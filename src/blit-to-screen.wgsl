@@ -37,6 +37,6 @@ fn VSMain(input: VSInput) -> VSOutput {
 
 @fragment
 fn FSMain(@location(0) uv: vec2f) -> @location(0) vec4f {
-  // return textureSample(myTexture, mySampler, uv);
-  return vec4f(uv, 0.0, 1.0);
+  return textureSample(myTexture, mySampler, uv);
+  // return vec4f(uv, 0.0, 1.0);
 }

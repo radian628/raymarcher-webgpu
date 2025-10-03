@@ -1,9 +1,11 @@
 import BlitToScreen from "./blit-to-screen.wgsl?raw";
 
 const canvas = document.createElement("canvas");
+canvas.width = 1024;
+canvas.height = 1024;
 document.body.appendChild(canvas);
 
-export function initBlitToScreen(device: GPUDevice) {
+export function initBlitToScreen(device: GPUDevice, tex: GPUTexture) {
   const ctx = canvas.getContext("webgpu");
 
   const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
@@ -31,10 +33,10 @@ export function initBlitToScreen(device: GPUDevice) {
     },
   });
 
-  // const sampler = device.createSampler({
-  //   minFilter: "linear",
-  //   magFilter: "linear"
-  // });
+  const sampler = device.createSampler({
+    minFilter: "linear",
+    magFilter: "linear",
+  });
 
   return () => {
     const commandEncoder = device.createCommandEncoder();
@@ -51,6 +53,19 @@ export function initBlitToScreen(device: GPUDevice) {
     });
 
     passEncoder.setPipeline(blitToScreenPipeline);
+    passEncoder.setBindGroup(
+      0,
+      device.createBindGroup({
+        layout: blitToScreenPipeline.getBindGroupLayout(0),
+        entries: [
+          {
+            binding: 0,
+            resource: sampler,
+          },
+          { binding: 1, resource: tex },
+        ],
+      })
+    );
     passEncoder.draw(6);
     passEncoder.end();
     device.queue.submit([commandEncoder.finish()]);
