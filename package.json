@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@webgpu/types": "^0.1.65",
+    "esbuild": "^0.25.10"
+  }
+}
