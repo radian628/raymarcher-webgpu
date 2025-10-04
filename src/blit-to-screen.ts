@@ -1,9 +1,24 @@
 import BlitToScreen from "./blit-to-screen.wgsl?raw";
 
 const canvas = document.createElement("canvas");
-canvas.width = 1024;
-canvas.height = 1024;
 document.body.appendChild(canvas);
+
+canvas.style = `
+position: absolute;
+top: 0;
+left: 0;
+width: 100vw;
+height: 100vh;
+`;
+
+function resize() {
+  canvas.width = window.innerWidth * window.devicePixelRatio;
+  canvas.height = window.innerHeight * window.devicePixelRatio;
+}
+
+window.addEventListener("resize", resize);
+
+resize();
 
 export function initBlitToScreen(device: GPUDevice, tex: GPUTexture) {
   const ctx = canvas.getContext("webgpu");

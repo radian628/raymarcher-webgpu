@@ -7,8 +7,19 @@ import {
 import { initBlitToScreen } from "./blit-to-screen";
 import ComputeShader from "./compute.wgsl?raw";
 import ComputeWGSLJson from "compute.wgsl";
-import { mulMat4 } from "../r628/src/math/vector";
+import {
+  add2,
+  add3,
+  Mat4,
+  mulMat4,
+  mulVec4ByMat4,
+  scale3,
+  Vec2,
+  Vec3,
+  xyz,
+} from "../r628/src/math/vector";
 import { inv4 } from "./matrix-inverse";
+import { add } from "../r628/src";
 
 function fail(msg: string) {
   window.alert(msg);
@@ -76,25 +87,10 @@ const uniformBuffer = device.createBuffer({
     GPUBufferUsage.UNIFORM,
 });
 
-const width = 1024;
-const height = 1024;
-
-// const input = new Float32Array(range(64));
-
-// const workBuffer = device.createBuffer({
-//   label: "workbuffer",
-//   size: input.byteLength,
-//   usage:
-//     GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
-// });
-
-// device.queue.writeBuffer(workBuffer, 0, input);
-
-// const resultBuffer = device.createBuffer({
-//   label: "result buffer",
-//   size: input.byteLength,
-//   usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
-// });
+let width = 1024;
+let height = 1024;
+let textures: GPUTexture[] = [];
+let textureFlipFlopBindGroups: GPUBindGroup[] = [];
 
 const makeEverythingTexture = () =>
   device.createTexture({
@@ -106,8 +102,6 @@ const makeEverythingTexture = () =>
       GPUTextureUsage.COPY_DST |
       GPUTextureUsage.STORAGE_BINDING,
   });
-
-const textures = [makeEverythingTexture(), makeEverythingTexture()];
 
 const uniformBindGroup = device.createBindGroup({
   label: "bind group for compute shader uniforms",
@@ -134,22 +128,92 @@ const makeTextureFlipFlopBindGroup = (prev: number, curr: number) =>
     ],
   });
 
-const textureFlipFlopBindGroups = [
-  makeTextureFlipFlopBindGroup(0, 1),
-  makeTextureFlipFlopBindGroup(1, 0),
-];
-
 let frameIndex = 0;
 
 let lastTransform = rotate([0, 1, 0], 0);
 
+function resize() {
+  width = window.innerWidth * window.devicePixelRatio;
+  height = window.innerHeight * window.devicePixelRatio;
+
+  textures = [makeEverythingTexture(), makeEverythingTexture()];
+  textureFlipFlopBindGroups = [
+    makeTextureFlipFlopBindGroup(0, 1),
+    makeTextureFlipFlopBindGroup(1, 0),
+  ];
+}
+
+window.addEventListener("resize", resize);
+
+resize();
+
+let viewerPos: Vec3 = [0, 0.1, -3];
+let viewerVel: Vec3 = [0, 0, 0];
+
+let rotationMatrix: Mat4 = rotate([0, 1, 0], 0.1);
+
+let keysDown = new Set<string>();
+
+document.addEventListener("keydown", (e) => {
+  keysDown.add(e.key.toLowerCase());
+});
+document.addEventListener("keyup", (e) => {
+  keysDown.delete(e.key.toLowerCase());
+});
+
+document.addEventListener("mousedown", (e) => {
+  document.body.requestPointerLock();
+});
+
+document.addEventListener("mousemove", (e) => {
+  if (document.pointerLockElement !== document.body) return;
+
+  const invrot = inv4(rotationMatrix);
+  const localXAxis = mulVec4ByMat4([1, 0, 0, 0], invrot);
+  const localYAxis = mulVec4ByMat4([0, 1, 0, 0], invrot);
+
+  const r1 = rotate(xyz(localYAxis), -e.movementX * 0.001);
+  const r2 = rotate(xyz(localXAxis), e.movementY * 0.001);
+
+  rotationMatrix = mulMat4(mulMat4(r1, r2), rotationMatrix);
+  // rotationMatrix = mulMat4(rotate([1, 0, 0], 0), rotationMatrix);
+});
+
+let lastTime = 0;
+
 function loop(t?: number) {
   frameIndex++;
   t ??= 0;
-  let currTransform = mulMat4(
-    rotate([1, -1, 0], t * -0.0002),
-    translate([-0, -0, -3 + t / 5009])
+  let dt = (t - lastTime) / 1000;
+
+  viewerPos = add3(viewerPos, scale3(viewerVel, dt));
+
+  const accel = mulVec4ByMat4(
+    [
+      keysDown.has("d") ? 1 : keysDown.has("a") ? -1 : 0,
+      keysDown.has("shift") ? 1 : keysDown.has(" ") ? -1 : 0,
+      keysDown.has("w") ? 1 : keysDown.has("s") ? -1 : 0,
+      0,
+    ],
+    inv4(rotationMatrix)
   );
+
+  viewerVel = add3(viewerVel, xyz(accel));
+  viewerVel = scale3(viewerVel, 0.1 ** dt);
+  if (Math.hypot(...viewerVel) < 0.2) {
+    viewerVel = [0, 0, 0];
+  }
+
+  let currTransform = mulMat4(translate(viewerPos), rotationMatrix);
+
+  // let currTransform = translate(viewerPos);
+
+  // console.log(currTransform);
+
+  let shouldReset = lastTransform.every((e, i) => e === currTransform[i])
+    ? 0
+    : 1;
+
   const buf = makeUniformBuffer<typeof ComputeWGSLJson, 1, 0>(
     ComputeWGSLJson,
     1,
@@ -162,6 +226,7 @@ function loop(t?: number) {
       lastTransformInverse: inv4(lastTransform),
       lastTransform: lastTransform,
       brightnessFactor: frameIndex % 70 === 1 || true ? 1 : 0,
+      shouldReset,
     }
   );
 
@@ -190,6 +255,7 @@ function loop(t?: number) {
 
   initBlitToScreen(device, textures[currTexIndex])();
 
+  lastTime = t;
   requestAnimationFrame(loop);
 }
 

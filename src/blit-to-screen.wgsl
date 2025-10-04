@@ -38,6 +38,6 @@ fn VSMain(input: VSInput) -> VSOutput {
 @fragment
 fn FSMain(@location(0) uv: vec2f) -> @location(0) vec4f {
   let pos = textureSample(tex, samp, uv, 1u);
-  return textureSample(tex, samp, uv, 0u);
+  return textureSample(tex, samp, uv, 0u) / max(pos.w, 1.0);
   // return vec4f(uv, 0.0, 1.0);
 }

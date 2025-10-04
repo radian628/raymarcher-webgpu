@@ -5001,23 +5001,34 @@ ${indentData}`);
 });
 
 // r628/src/math/vector.ts
+function xyz(a) {
+  return [a[0], a[1], a[2]];
+}
+function mulVec4ByMat4(a, b) {
+  return [
+    a[0] * b[0] + a[1] * b[4] + a[2] * b[8] + a[3] * b[12],
+    a[0] * b[1] + a[1] * b[5] + a[2] * b[9] + a[3] * b[13],
+    a[0] * b[2] + a[1] * b[6] + a[2] * b[10] + a[3] * b[14],
+    a[0] * b[3] + a[1] * b[7] + a[2] * b[11] + a[3] * b[15]
+  ];
+}
 function mulMat4(a, b) {
   return [
     a[0] * b[0] + a[1] * b[4] + a[2] * b[8] + a[3] * b[12],
-    a[4] * b[0] + a[5] * b[4] + a[6] * b[8] + a[7] * b[12],
-    a[8] * b[0] + a[9] * b[4] + a[10] * b[8] + a[11] * b[12],
-    a[12] * b[0] + a[13] * b[4] + a[14] * b[8] + a[15] * b[12],
     a[0] * b[1] + a[1] * b[5] + a[2] * b[9] + a[3] * b[13],
-    a[4] * b[1] + a[5] * b[5] + a[6] * b[9] + a[7] * b[13],
-    a[8] * b[1] + a[9] * b[5] + a[10] * b[9] + a[11] * b[13],
-    a[12] * b[1] + a[13] * b[5] + a[14] * b[9] + a[15] * b[13],
     a[0] * b[2] + a[1] * b[6] + a[2] * b[10] + a[3] * b[14],
-    a[4] * b[2] + a[5] * b[6] + a[6] * b[10] + a[7] * b[14],
-    a[8] * b[2] + a[9] * b[6] + a[10] * b[10] + a[11] * b[14],
-    a[12] * b[2] + a[13] * b[6] + a[14] * b[10] + a[15] * b[14],
     a[0] * b[3] + a[1] * b[7] + a[2] * b[11] + a[3] * b[15],
+    a[4] * b[0] + a[5] * b[4] + a[6] * b[8] + a[7] * b[12],
+    a[4] * b[1] + a[5] * b[5] + a[6] * b[9] + a[7] * b[13],
+    a[4] * b[2] + a[5] * b[6] + a[6] * b[10] + a[7] * b[14],
     a[4] * b[3] + a[5] * b[7] + a[6] * b[11] + a[7] * b[15],
+    a[8] * b[0] + a[9] * b[4] + a[10] * b[8] + a[11] * b[12],
+    a[8] * b[1] + a[9] * b[5] + a[10] * b[9] + a[11] * b[13],
+    a[8] * b[2] + a[9] * b[6] + a[10] * b[10] + a[11] * b[14],
     a[8] * b[3] + a[9] * b[7] + a[10] * b[11] + a[11] * b[15],
+    a[12] * b[0] + a[13] * b[4] + a[14] * b[8] + a[15] * b[12],
+    a[12] * b[1] + a[13] * b[5] + a[14] * b[9] + a[15] * b[13],
+    a[12] * b[2] + a[13] * b[6] + a[14] * b[10] + a[15] * b[14],
     a[12] * b[3] + a[13] * b[7] + a[14] * b[11] + a[15] * b[15]
   ];
 }
@@ -5071,7 +5082,7 @@ function rotate(axis, angle) {
   ];
 }
 function translate(v) {
-  return [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, ...v, 1];
+  return [1, 0, 0, v[0], 0, 1, 0, v[1], 0, 0, 1, v[2], 0, 0, 0, 1];
 }
 
 // src/bind-group-generator.ts
@@ -5166,13 +5177,24 @@ function makeUniformBuffer(spec, group, binding, data) {
 }
 
 // raw-ns:/mnt/c/Users/baker/Documents/GitHub/raymarcher-webgpu/src/blit-to-screen.wgsl?raw
-var blit_to_screen_default = "struct VSInput {\r\n  @builtin(vertex_index) vertexIndex: u32,\r\n}\r\n\r\nstruct VSOutput {\r\n  @builtin(position) position: vec4f,\r\n  @location(0) uv: vec2f,\r\n}\r\n\r\n@group(0) @binding(0) var samp : sampler;\r\n@group(0) @binding(1) var tex : texture_2d_array<f32>;\r\n\r\n@vertex\r\nfn VSMain(input: VSInput) -> VSOutput {\r\n  var vsOut: VSOutput;\r\n\r\n  vsOut.position = vec4(array(\r\n    vec2( 1.0,  1.0),\r\n    vec2( 1.0, -1.0),\r\n    vec2(-1.0, -1.0),\r\n    vec2( 1.0,  1.0),\r\n    vec2(-1.0, -1.0),\r\n    vec2(-1.0,  1.0),\r\n  )[input.vertexIndex], 0.5, 1.0);\r\n\r\n  vsOut.uv = array(\r\n    vec2(1.0, 0.0),\r\n    vec2(1.0, 1.0),\r\n    vec2(0.0, 1.0),\r\n    vec2(1.0, 0.0),\r\n    vec2(0.0, 1.0),\r\n    vec2(0.0, 0.0),\r\n  )[input.vertexIndex];\r\n\r\n  return vsOut;\r\n}\r\n\r\n@fragment\r\nfn FSMain(@location(0) uv: vec2f) -> @location(0) vec4f {\r\n  let pos = textureSample(tex, samp, uv, 1u);\r\n  return textureSample(tex, samp, uv, 0u);\r\n  // return vec4f(uv, 0.0, 1.0);\r\n}";
+var blit_to_screen_default = "struct VSInput {\r\n  @builtin(vertex_index) vertexIndex: u32,\r\n}\r\n\r\nstruct VSOutput {\r\n  @builtin(position) position: vec4f,\r\n  @location(0) uv: vec2f,\r\n}\r\n\r\n@group(0) @binding(0) var samp : sampler;\r\n@group(0) @binding(1) var tex : texture_2d_array<f32>;\r\n\r\n@vertex\r\nfn VSMain(input: VSInput) -> VSOutput {\r\n  var vsOut: VSOutput;\r\n\r\n  vsOut.position = vec4(array(\r\n    vec2( 1.0,  1.0),\r\n    vec2( 1.0, -1.0),\r\n    vec2(-1.0, -1.0),\r\n    vec2( 1.0,  1.0),\r\n    vec2(-1.0, -1.0),\r\n    vec2(-1.0,  1.0),\r\n  )[input.vertexIndex], 0.5, 1.0);\r\n\r\n  vsOut.uv = array(\r\n    vec2(1.0, 0.0),\r\n    vec2(1.0, 1.0),\r\n    vec2(0.0, 1.0),\r\n    vec2(1.0, 0.0),\r\n    vec2(0.0, 1.0),\r\n    vec2(0.0, 0.0),\r\n  )[input.vertexIndex];\r\n\r\n  return vsOut;\r\n}\r\n\r\n@fragment\r\nfn FSMain(@location(0) uv: vec2f) -> @location(0) vec4f {\r\n  let pos = textureSample(tex, samp, uv, 1u);\r\n  return textureSample(tex, samp, uv, 0u) / max(pos.w, 1.0);\r\n  // return vec4f(uv, 0.0, 1.0);\r\n}";
 
 // src/blit-to-screen.ts
 var canvas = document.createElement("canvas");
-canvas.width = 1024;
-canvas.height = 1024;
 document.body.appendChild(canvas);
+canvas.style = `
+position: absolute;
+top: 0;
+left: 0;
+width: 100vw;
+height: 100vh;
+`;
+function resize() {
+  canvas.width = window.innerWidth * window.devicePixelRatio;
+  canvas.height = window.innerHeight * window.devicePixelRatio;
+}
+window.addEventListener("resize", resize);
+resize();
 function initBlitToScreen(device2, tex) {
   const ctx = canvas.getContext("webgpu");
   const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
@@ -5251,10 +5273,10 @@ function initBlitToScreen(device2, tex) {
 }
 
 // raw-ns:/mnt/c/Users/baker/Documents/GitHub/raymarcher-webgpu/src/compute.wgsl?raw
-var compute_default = "struct B {\r\n  test: array<vec4u, 4>,\r\n}\r\n\r\nstruct Params {\r\n  size: vec2<u32>,\r\n  rand: vec2f,\r\n  transformInv: mat4x4f,\r\n  transform: mat4x4f,\r\n  lastTransformInverse: mat4x4f,\r\n  lastTransform: mat4x4f,\r\n  brightnessFactor: f32\r\n}\r\n\r\n@group(0) @binding(0) var tex: texture_storage_2d_array<rgba32float, write>;\r\n@group(0) @binding(1) var prevTex: texture_storage_2d_array<rgba32float, read>;\r\n\r\n@group(1) @binding(0) var<uniform> params : Params;\r\n@group(1) @binding(1) var smpl : sampler;\r\n\r\n\r\nfn rand(co: vec2f) -> f32 {\r\n  return fract(sin(dot(co, vec2f(12.9898, 78.233))) * 43758.5453); \r\n}\r\n\r\n@compute @workgroup_size(8, 8, 1) fn computeSomething(\r\n  @builtin(global_invocation_id) id: vec3<u32>\r\n) {\r\n\r\n  _ = smpl;\r\n\r\n  var value: vec3f = vec3f(0.0);\r\n\r\n  let idnorm = vec2f(id.xy) / vec2f(params.size.xy);\r\n\r\n  let fractpos = idnorm + vec2f(0.0, 0.0) / vec2f(params.size.xy);\r\n\r\n\r\n      var originalPos = (vec4f(0.0, 0.0, 0.0, 1.0) * params.transform).xyz;\r\n      var pos = originalPos;\r\n      var originalDir = (\r\n        vec4(normalize(vec3f(fractpos * 2.0 - 1.0, 1.0)), 0.0) \r\n        * params.transform\r\n      ).xyz;\r\n      var dir = originalDir;\r\n      \r\n      var normal: vec3f;\r\n      var didHit: bool;\r\n      var emission = vec3f(0.0);\r\n      let lightdir = normalize(vec3f(1.0, 1.0, -1.0));\r\n      var totaldist = 0.0;\r\n\r\n      for (var i = 0u; i < 4u; i++) {\r\n        let hit = marchRay(pos, dir, 128u);\r\n        totaldist += distance(pos, hit.pos);\r\n        pos = hit.pos + hit.normal * 0.001;\r\n        dir = reflect(dir, normalize(\r\n          hit.normal + vec3f(\r\n            rand(idnorm + params.rand),\r\n            rand(idnorm + params.rand + 1.0),\r\n            rand(idnorm + params.rand + 2.0)\r\n          ) * 0.1 - 0.05\r\n        ));\r\n        normal = hit.normal;\r\n        didHit = hit.hit;\r\n        emission += abs(dot(lightdir, normal)) * pow(0.5, f32(i) + 1.0);\r\n        value += vec3(0.5) * pow(0.5, f32(i)) * max(0.0, dot(normal, dir));\r\n      }\r\n\r\n\r\n  let fwdpos = originalPos + originalDir * totaldist;\r\n\r\n  let posInCurrentFramePerspective = vec4f(fwdpos, 1.0) * params.transformInv;\r\n  let posInLastFramePerspective = vec4f(fwdpos, 1.0) * params.lastTransformInverse;\r\n  let lastFrameCoords = posInLastFramePerspective.xy / posInLastFramePerspective.z;\r\n  let lastFrameUV = lastFrameCoords * 0.5 + 0.5;\r\n  let preverr = textureLoad(prevTex, id.xy, 2u).xy;\r\n\r\n  let reprojOffset = \r\n    modf(\r\n      (lastFrameUV - fractpos) * vec2f(params.size.xy)\r\n      + vec2(0.5, 0.5) * 0.0 \r\n      + preverr\r\n    ); \r\n  \r\n  let reprojSamplePos = vec2i(\r\n    vec2f(id.xy) + reprojOffset.whole\r\n  );\r\n\r\n  let prevcol = textureLoad(prevTex, reprojSamplePos, 0u);\r\n  let prevpos = textureLoad(prevTex, reprojSamplePos, 1u);\r\n\r\n  var reprojFactor = 1.0 / clamp(prevpos.w, 1.0, 30.0);\r\n\r\n  let reprojFailed = \r\n    abs(length(prevpos.xyz - fwdpos)) > 0.2\r\n    || reprojSamplePos.x >= i32(params.size.x)\r\n    || reprojSamplePos.y >= i32(params.size.y)\r\n    || reprojSamplePos.x < 0 \r\n    || reprojSamplePos.y < 0;\r\n\r\n  if (\r\n    reprojFailed\r\n  ) {\r\n    reprojFactor = 1.0;\r\n  }\r\n\r\n  let currColor = vec4f(value / 1.0, 1.0);\r\n  let mixColor = mix(prevcol, currColor, reprojFactor);\r\n  // let mixColor = prevcol + currColor;\r\n\r\n  textureStore(tex, id.xy, 0u, mixColor);\r\n  textureStore(tex, id.xy, 1u, vec4f(\r\n    fwdpos,\r\n    select(prevpos.w + 1.0, 0.0, reprojFailed)\r\n  ));\r\n  textureStore(tex, id.xy, 2u, vec4f(reprojOffset.fract, 0.0, 0.0));\r\n}\r\n\r\nstruct HitInfo {\r\n  hit: bool,\r\n  pos: vec3f,\r\n  normal: vec3f,\r\n}\r\n\r\nfn marchRay(\r\n  pos: vec3f,\r\n  dir: vec3f,\r\n  iters: u32\r\n) -> HitInfo {\r\n  var posTemp = pos;\r\n  for (var i = 0u; i < iters; i++) {\r\n    let dist = sdf(posTemp);\r\n    posTemp += dir * dist;\r\n  }\r\n\r\n  let distSample = sdf(posTemp);\r\n\r\n  let normal = normalize(vec3f(\r\n    sdf(posTemp + vec3f(0.01, 0.0, 0.0)) - distSample,\r\n    sdf(posTemp + vec3f(0.0, 0.01, 0.0)) - distSample,\r\n    sdf(posTemp + vec3f(0.0, 0.0, 0.01)) - distSample,\r\n  ));\r\n\r\n  return HitInfo(\r\n    distSample < 0.01,\r\n    posTemp,\r\n    normal,\r\n  );\r\n}\r\n\r\n// MARCH_FUNCTION ";
+var compute_default = "struct B {\r\n  test: array<vec4u, 4>,\r\n}\r\n\r\nstruct Params {\r\n  size: vec2<u32>,\r\n  rand: vec2f,\r\n  transform: mat4x4f,\r\n  transformInv: mat4x4f,\r\n  lastTransformInverse: mat4x4f,\r\n  lastTransform: mat4x4f,\r\n  brightnessFactor: f32,\r\n  shouldReset: u32,\r\n}\r\n\r\n@group(0) @binding(0) var tex: texture_storage_2d_array<rgba32float, write>;\r\n@group(0) @binding(1) var prevTex: texture_storage_2d_array<rgba32float, read>;\r\n\r\n@group(1) @binding(0) var<uniform> params : Params;\r\n@group(1) @binding(1) var smpl : sampler;\r\n\r\n\r\nfn rand(co: vec2f) -> f32 {\r\n  return fract(sin(dot(co, vec2f(12.9898, 78.233))) * 43758.5453); \r\n}\r\n\r\nfn r(hsv: vec3f) -> f32 {\r\n  return pow(cos(hsv.x * 3.141592 * 2.0) * 0.5 * hsv.y + 0.5 * hsv.z, 0.6);\r\n}\r\n\r\nfn hsl2rgb(hsl: vec3f) -> vec3f {\r\n  return vec3f(\r\n    r(hsl),\r\n    r(hsl - 0.33333333),\r\n    r(hsl - 0.66666666)\r\n  );\r\n}\r\n\r\n@compute @workgroup_size(8, 8, 1) fn computeSomething(\r\n  @builtin(global_invocation_id) id: vec3<u32>\r\n) {\r\n\r\n  _ = smpl;\r\n\r\n  var value: vec3f = vec3f(0.0);\r\n\r\n  let idnorm = vec2f(id.xy) / vec2f(params.size.xy);\r\n\r\n  let fractpos = idnorm + params.rand / vec2f(params.size.xy);\r\n\r\n  var originalPos = (vec4f(0.0, 0.0, 0.0, 1.0) * params.transform).xyz;\r\n\r\n  // var originalPos = params.transform[3].xyz;\r\n\r\n  var pos = originalPos;\r\n  var originalDir = (\r\n    vec4(normalize(vec3f(fractpos * 2.0 - 1.0, 1.0)), 0.0) \r\n    * params.transform\r\n  ).xyz;\r\n  var dir = originalDir;\r\n      \r\n  var normal: vec3f;\r\n  var didHit: bool;\r\n  var emission = vec3f(0.0);\r\n  let lightdir = normalize(vec3f(1.0, 1.0, -1.0));\r\n  var totaldist = 0.0;\r\n\r\n  for (var i = 0u; i < 8u; i++) {\r\n    let hit = marchRay(pos, dir, 256u);\r\n    totaldist += distance(pos, hit.pos);\r\n    pos = hit.pos + hit.normal * 0.001;\r\n    dir = reflect(dir, normalize(\r\n      hit.normal + (vec3f(\r\n        rand(idnorm + params.rand),\r\n        rand(idnorm + params.rand + 1.0),\r\n        rand(idnorm + params.rand + 2.0)\r\n       ) - 0.5) * vec3f(0.0)\r\n    ));\r\n    normal = hit.normal;\r\n    didHit = hit.hit;\r\n    let factor = f32(i % 2u) * 2.0 - 1.0;\r\n    let colorBase = hsl2rgb(vec3f(f32(i) / 8.0 * -0.4 + 0.2, 1.0, 1.0));\r\n    let incidence = max(0.0, select(0.0, 1.0, dot(dir, normal) < 0.2 + f32(i) * 0.01));\r\n\r\n    value += factor * colorBase * 0.0 + colorBase * incidence * 2.0;\r\n  }\r\n\r\n  let prevcol = textureLoad(prevTex, id.xy, 0u);\r\n  let prevpos = textureLoad(prevTex, id.xy, 1u);\r\n\r\n  let currColor = vec4f(value / 1.0, 1.0);\r\n  let mixColor = prevcol + currColor;\r\n\r\n  if (params.shouldReset == 1u) {\r\n    textureStore(tex, id.xy, 0u, currColor);\r\n    textureStore(tex, id.xy, 1u, vec4f(\r\n      pos,\r\n      1.0\r\n    ));\r\n  } else {\r\n    textureStore(tex, id.xy, 0u, mixColor);\r\n    textureStore(tex, id.xy, 1u, vec4f(\r\n      pos,\r\n      prevpos.w + 1.0\r\n    ));\r\n  }\r\n}\r\n\r\nstruct HitInfo {\r\n  hit: bool,\r\n  pos: vec3f,\r\n  normal: vec3f,\r\n}\r\n\r\nfn marchRay(\r\n  pos: vec3f,\r\n  dir: vec3f,\r\n  iters: u32\r\n) -> HitInfo {\r\n  var posTemp = pos;\r\n  for (var i = 0u; i < iters; i++) {\r\n    let dist = sdf(posTemp);\r\n    posTemp += dir * dist;\r\n  }\r\n\r\n  let distSample = sdf(posTemp);\r\n\r\n  let normal = normalize(vec3f(\r\n    sdf(posTemp + vec3f(0.01, 0.0, 0.0)) - distSample,\r\n    sdf(posTemp + vec3f(0.0, 0.01, 0.0)) - distSample,\r\n    sdf(posTemp + vec3f(0.0, 0.0, 0.01)) - distSample,\r\n  ));\r\n\r\n  return HitInfo(\r\n    distSample < 0.01,\r\n    posTemp,\r\n    normal,\r\n  );\r\n}\r\n\r\n// MARCH_FUNCTION ";
 
 // wgsl:/mnt/c/Users/baker/Documents/GitHub/raymarcher-webgpu/src/compute.wgsl
-var compute_default2 = { bindGroups: [[{ name: "tex", type: { name: "texture_storage_2d_array", attributes: [{ id: 131124, line: 15, name: "group", value: "0" }, { id: 131125, line: 15, name: "binding", value: "0" }], size: 0, format: { name: "rgba32float", attributes: null, size: 0 }, access: "write" }, group: 0, binding: 0, attributes: [{ id: 131124, line: 15, name: "group", value: "0" }, { id: 131125, line: 15, name: "binding", value: "0" }], resourceType: 4, access: "read" }, { name: "prevTex", type: { name: "texture_storage_2d_array", attributes: [{ id: 131128, line: 16, name: "group", value: "0" }, { id: 131129, line: 16, name: "binding", value: "1" }], size: 0, format: { name: "rgba32float", attributes: null, size: 0 }, access: "read" }, group: 0, binding: 1, attributes: [{ id: 131128, line: 16, name: "group", value: "0" }, { id: 131129, line: 16, name: "binding", value: "1" }], resourceType: 4, access: "read" }], [{ name: "params", type: { name: "Params", attributes: null, size: 288, members: [{ name: "size", type: { name: "vec2", attributes: null, size: 8, format: { name: "u32", attributes: null, size: 4 }, access: null }, attributes: null, offset: 0, size: 8 }, { name: "rand", type: { name: "vec2f", attributes: null, size: 8 }, attributes: null, offset: 8, size: 8 }, { name: "transformInv", type: { name: "mat4x4f", attributes: null, size: 64 }, attributes: null, offset: 16, size: 64 }, { name: "transform", type: { name: "mat4x4f", attributes: null, size: 64 }, attributes: null, offset: 80, size: 64 }, { name: "lastTransformInverse", type: { name: "mat4x4f", attributes: null, size: 64 }, attributes: null, offset: 144, size: 64 }, { name: "lastTransform", type: { name: "mat4x4f", attributes: null, size: 64 }, attributes: null, offset: 208, size: 64 }, { name: "brightnessFactor", type: { name: "f32", attributes: null, size: 4 }, attributes: null, offset: 272, size: 4 }], align: 16, startLine: 5, endLine: 13, inUse: true }, group: 1, binding: 0, attributes: [{ id: 131132, line: 18, name: "group", value: "1" }, { id: 131133, line: 18, name: "binding", value: "0" }], resourceType: 0, access: "read" }, { name: "smpl", type: { name: "sampler", attributes: [{ id: 131135, line: 19, name: "group", value: "1" }, { id: 131136, line: 19, name: "binding", value: "1" }], size: 0, format: null, access: null }, group: 1, binding: 1, attributes: [{ id: 131135, line: 19, name: "group", value: "1" }, { id: 131136, line: 19, name: "binding", value: "1" }], resourceType: 3, access: "" }]] };
+var compute_default2 = { bindGroups: [[{ name: "tex", type: { name: "texture_storage_2d_array", attributes: [{ id: 222695, line: 16, name: "group", value: "0" }, { id: 222696, line: 16, name: "binding", value: "0" }], size: 0, format: { name: "rgba32float", attributes: null, size: 0 }, access: "write" }, group: 0, binding: 0, attributes: [{ id: 222695, line: 16, name: "group", value: "0" }, { id: 222696, line: 16, name: "binding", value: "0" }], resourceType: 4, access: "read" }, { name: "prevTex", type: { name: "texture_storage_2d_array", attributes: [{ id: 222699, line: 17, name: "group", value: "0" }, { id: 222700, line: 17, name: "binding", value: "1" }], size: 0, format: { name: "rgba32float", attributes: null, size: 0 }, access: "read" }, group: 0, binding: 1, attributes: [{ id: 222699, line: 17, name: "group", value: "0" }, { id: 222700, line: 17, name: "binding", value: "1" }], resourceType: 4, access: "read" }], [{ name: "params", type: { name: "Params", attributes: null, size: 288, members: [{ name: "size", type: { name: "vec2", attributes: null, size: 8, format: { name: "u32", attributes: null, size: 4 }, access: null }, attributes: null, offset: 0, size: 8 }, { name: "rand", type: { name: "vec2f", attributes: null, size: 8 }, attributes: null, offset: 8, size: 8 }, { name: "transform", type: { name: "mat4x4f", attributes: null, size: 64 }, attributes: null, offset: 16, size: 64 }, { name: "transformInv", type: { name: "mat4x4f", attributes: null, size: 64 }, attributes: null, offset: 80, size: 64 }, { name: "lastTransformInverse", type: { name: "mat4x4f", attributes: null, size: 64 }, attributes: null, offset: 144, size: 64 }, { name: "lastTransform", type: { name: "mat4x4f", attributes: null, size: 64 }, attributes: null, offset: 208, size: 64 }, { name: "brightnessFactor", type: { name: "f32", attributes: null, size: 4 }, attributes: null, offset: 272, size: 4 }, { name: "shouldReset", type: { name: "u32", attributes: null, size: 4 }, attributes: null, offset: 276, size: 4 }], align: 16, startLine: 5, endLine: 14, inUse: true }, group: 1, binding: 0, attributes: [{ id: 222703, line: 19, name: "group", value: "1" }, { id: 222704, line: 19, name: "binding", value: "0" }], resourceType: 0, access: "read" }, { name: "smpl", type: { name: "sampler", attributes: [{ id: 222706, line: 20, name: "group", value: "1" }, { id: 222707, line: 20, name: "binding", value: "1" }], size: 0, format: null, access: null }, group: 1, binding: 1, attributes: [{ id: 222706, line: 20, name: "group", value: "1" }, { id: 222707, line: 20, name: "binding", value: "1" }], resourceType: 3, access: "" }]] };
 
 // node_modules/ml-matrix/matrix.mjs
 var matrix = __toESM(require_matrix(), 1);
@@ -5331,13 +5353,14 @@ var uniformBuffer = device.createBuffer({
 });
 var width = 1024;
 var height = 1024;
+var textures = [];
+var textureFlipFlopBindGroups = [];
 var makeEverythingTexture = () => device.createTexture({
   size: [width, height, 3],
   format: "rgba32float",
   dimension: "2d",
   usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.STORAGE_BINDING
 });
-var textures = [makeEverythingTexture(), makeEverythingTexture()];
 var uniformBindGroup = device.createBindGroup({
   label: "bind group for compute shader uniforms",
   layout: pipeline.getBindGroupLayout(1),
@@ -5360,19 +5383,63 @@ var makeTextureFlipFlopBindGroup = (prev, curr) => device.createBindGroup({
     { binding: 1, resource: textures[prev] }
   ]
 });
-var textureFlipFlopBindGroups = [
-  makeTextureFlipFlopBindGroup(0, 1),
-  makeTextureFlipFlopBindGroup(1, 0)
-];
 var frameIndex = 0;
 var lastTransform = rotate([0, 1, 0], 0);
+function resize2() {
+  width = window.innerWidth * window.devicePixelRatio;
+  height = window.innerHeight * window.devicePixelRatio;
+  textures = [makeEverythingTexture(), makeEverythingTexture()];
+  textureFlipFlopBindGroups = [
+    makeTextureFlipFlopBindGroup(0, 1),
+    makeTextureFlipFlopBindGroup(1, 0)
+  ];
+}
+window.addEventListener("resize", resize2);
+resize2();
+var viewerPos = [0, 0.1, -3];
+var viewerVel = [0, 0, 0];
+var rotationMatrix = rotate([0, 1, 0], 0.1);
+var keysDown = /* @__PURE__ */ new Set();
+document.addEventListener("keydown", (e) => {
+  keysDown.add(e.key.toLowerCase());
+});
+document.addEventListener("keyup", (e) => {
+  keysDown.delete(e.key.toLowerCase());
+});
+document.addEventListener("mousedown", (e) => {
+  document.body.requestPointerLock();
+});
+document.addEventListener("mousemove", (e) => {
+  if (document.pointerLockElement !== document.body) return;
+  const invrot = inv4(rotationMatrix);
+  const localXAxis = mulVec4ByMat4([1, 0, 0, 0], invrot);
+  const localYAxis = mulVec4ByMat4([0, 1, 0, 0], invrot);
+  const r1 = rotate(xyz(localYAxis), -e.movementX * 1e-3);
+  const r2 = rotate(xyz(localXAxis), e.movementY * 1e-3);
+  rotationMatrix = mulMat4(mulMat4(r1, r2), rotationMatrix);
+});
+var lastTime = 0;
 function loop(t) {
   frameIndex++;
   t ??= 0;
-  let currTransform = mulMat4(
-    rotate([1, -1, 0], t * -2e-4),
-    translate([-0, -0, -3 + t / 5009])
+  let dt = (t - lastTime) / 1e3;
+  viewerPos = add3(viewerPos, scale3(viewerVel, dt));
+  const accel = mulVec4ByMat4(
+    [
+      keysDown.has("d") ? 1 : keysDown.has("a") ? -1 : 0,
+      keysDown.has("shift") ? 1 : keysDown.has(" ") ? -1 : 0,
+      keysDown.has("w") ? 1 : keysDown.has("s") ? -1 : 0,
+      0
+    ],
+    inv4(rotationMatrix)
   );
+  viewerVel = add3(viewerVel, xyz(accel));
+  viewerVel = scale3(viewerVel, 0.1 ** dt);
+  if (Math.hypot(...viewerVel) < 0.2) {
+    viewerVel = [0, 0, 0];
+  }
+  let currTransform = mulMat4(translate(viewerPos), rotationMatrix);
+  let shouldReset = lastTransform.every((e, i) => e === currTransform[i]) ? 0 : 1;
   const buf = makeUniformBuffer(
     compute_default2,
     1,
@@ -5384,7 +5451,8 @@ function loop(t) {
       transform: currTransform,
       lastTransformInverse: inv4(lastTransform),
       lastTransform,
-      brightnessFactor: frameIndex % 70 === 1 || true ? 1 : 0
+      brightnessFactor: frameIndex % 70 === 1 || true ? 1 : 0,
+      shouldReset
     }
   );
   lastTransform = currTransform;
@@ -5404,6 +5472,7 @@ function loop(t) {
   device.queue.submit([commandBuffer]);
   const currTexIndex = 1 - frameIndex % 2;
   initBlitToScreen(device, textures[currTexIndex])();
+  lastTime = t;
   requestAnimationFrame(loop);
 }
 loop();
