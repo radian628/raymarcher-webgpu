@@ -59,7 +59,7 @@ fn rand(co: vec2f) -> f32 {
             rand(idnorm + params.rand),
             rand(idnorm + params.rand + 1.0),
             rand(idnorm + params.rand + 2.0)
-          ) * 0.1
+          ) * 0.1 - 0.05
         ));
         normal = hit.normal;
         didHit = hit.hit;
