@@ -11,6 +11,7 @@ struct Params {
   lastTransform: mat4x4f,
   brightnessFactor: f32,
   shouldReset: u32,
+  aspect: f32,
 }
 
 @group(0) @binding(0) var tex: texture_storage_2d_array<rgba32float, write>;
@@ -54,7 +55,7 @@ fn hsl2rgb(hsl: vec3f) -> vec3f {
 
   var pos = originalPos;
   var originalDir = (
-    vec4(normalize(vec3f(fractpos * 2.0 - 1.0, 1.0)), 0.0) 
+    vec4(normalize(vec3f(1.0, params.aspect, 1.0) * vec3f(fractpos * 2.0 - 1.0, 1.0)), 0.0) 
     * params.transform
   ).xyz;
   var dir = originalDir;
@@ -79,7 +80,7 @@ fn hsl2rgb(hsl: vec3f) -> vec3f {
     normal = hit.normal;
     didHit = hit.hit;
     let factor = f32(i % 2u) * 2.0 - 1.0;
-    let colorBase = hsl2rgb(vec3f(f32(i) / 8.0 * -0.4 + 0.2, 1.0, 1.0));
+    let colorBase = hsl2rgb(vec3f(f32(i) / 8.0 * 2.9 + 0.2, 1.0, 1.0));
     let incidence = max(0.0, select(0.0, 1.0, dot(dir, normal) < 0.2 + f32(i) * 0.01));
 
     value += factor * colorBase * 0.0 + colorBase * incidence * 2.0;

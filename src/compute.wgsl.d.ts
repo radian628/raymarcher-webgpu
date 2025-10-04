@@ -8,14 +8,14 @@ declare module "compute.wgsl" {
           "name": "texture_storage_2d_array",
           "attributes": [
             {
-              "id": 222695,
-              "line": 16,
+              "id": 232676,
+              "line": 17,
               "name": "group",
               "value": "0"
             },
             {
-              "id": 222696,
-              "line": 16,
+              "id": 232677,
+              "line": 17,
               "name": "binding",
               "value": "0"
             }
@@ -32,14 +32,14 @@ declare module "compute.wgsl" {
         "binding": 0,
         "attributes": [
           {
-            "id": 222695,
-            "line": 16,
+            "id": 232676,
+            "line": 17,
             "name": "group",
             "value": "0"
           },
           {
-            "id": 222696,
-            "line": 16,
+            "id": 232677,
+            "line": 17,
             "name": "binding",
             "value": "0"
           }
@@ -53,14 +53,14 @@ declare module "compute.wgsl" {
           "name": "texture_storage_2d_array",
           "attributes": [
             {
-              "id": 222699,
-              "line": 17,
+              "id": 232680,
+              "line": 18,
               "name": "group",
               "value": "0"
             },
             {
-              "id": 222700,
-              "line": 17,
+              "id": 232681,
+              "line": 18,
               "name": "binding",
               "value": "1"
             }
@@ -77,14 +77,14 @@ declare module "compute.wgsl" {
         "binding": 1,
         "attributes": [
           {
-            "id": 222699,
-            "line": 17,
+            "id": 232680,
+            "line": 18,
             "name": "group",
             "value": "0"
           },
           {
-            "id": 222700,
-            "line": 17,
+            "id": 232681,
+            "line": 18,
             "name": "binding",
             "value": "1"
           }
@@ -194,25 +194,36 @@ declare module "compute.wgsl" {
               "attributes": null,
               "offset": 276,
               "size": 4
+            },
+            {
+              "name": "aspect",
+              "type": {
+                "name": "f32",
+                "attributes": null,
+                "size": 4
+              },
+              "attributes": null,
+              "offset": 280,
+              "size": 4
             }
           ],
           "align": 16,
           "startLine": 5,
-          "endLine": 14,
+          "endLine": 15,
           "inUse": true
         },
         "group": 1,
         "binding": 0,
         "attributes": [
           {
-            "id": 222703,
-            "line": 19,
+            "id": 232684,
+            "line": 20,
             "name": "group",
             "value": "1"
           },
           {
-            "id": 222704,
-            "line": 19,
+            "id": 232685,
+            "line": 20,
             "name": "binding",
             "value": "0"
           }
@@ -226,14 +237,14 @@ declare module "compute.wgsl" {
           "name": "sampler",
           "attributes": [
             {
-              "id": 222706,
-              "line": 20,
+              "id": 232687,
+              "line": 21,
               "name": "group",
               "value": "1"
             },
             {
-              "id": 222707,
-              "line": 20,
+              "id": 232688,
+              "line": 21,
               "name": "binding",
               "value": "1"
             }
@@ -246,14 +257,14 @@ declare module "compute.wgsl" {
         "binding": 1,
         "attributes": [
           {
-            "id": 222706,
-            "line": 20,
+            "id": 232687,
+            "line": 21,
             "name": "group",
             "value": "1"
           },
           {
-            "id": 222707,
-            "line": 20,
+            "id": 232688,
+            "line": 21,
             "name": "binding",
             "value": "1"
           }

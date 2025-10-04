@@ -32,6 +32,10 @@ const A = ComputeWGSLJson[0];
 
 const adapter = await navigator.gpu.requestAdapter();
 const device = await adapter.requestDevice();
+device.pushErrorScope("internal");
+device.addEventListener("uncapturederror", (event) =>
+  console.error(event.error)
+);
 if (!device) {
   fail("No GPU device!");
 }
@@ -116,6 +120,10 @@ const uniformBindGroup = device.createBindGroup({
       }),
     },
   ],
+});
+
+device.popErrorScope().then((e) => {
+  console.log(e);
 });
 
 const makeTextureFlipFlopBindGroup = (prev: number, curr: number) =>
@@ -227,6 +235,7 @@ function loop(t?: number) {
       lastTransform: lastTransform,
       brightnessFactor: frameIndex % 70 === 1 || true ? 1 : 0,
       shouldReset,
+      aspect: height / width,
     }
   );
 
