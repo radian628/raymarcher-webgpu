@@ -95,47 +95,19 @@ const height = 1024;
 //   size: input.byteLength,
 //   usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
 // });
-const makeColorTexture = () =>
+
+const makeEverythingTexture = () =>
   device.createTexture({
-    size: [width, height, 1],
+    size: [width, height, 3],
     format: "rgba32float",
+    dimension: "2d",
     usage:
       GPUTextureUsage.TEXTURE_BINDING |
       GPUTextureUsage.COPY_DST |
       GPUTextureUsage.STORAGE_BINDING,
   });
 
-const makeWorldSpacePositionTexture = () =>
-  device.createTexture({
-    size: [width, height, 1],
-    format: "rgba32float",
-    usage:
-      GPUTextureUsage.TEXTURE_BINDING |
-      GPUTextureUsage.COPY_DST |
-      GPUTextureUsage.STORAGE_BINDING,
-  });
-
-const makeAccumulatedReprojectionErrorTexture = () =>
-  device.createTexture({
-    size: [width, height, 1],
-    format: "rgba32float",
-    usage:
-      GPUTextureUsage.TEXTURE_BINDING |
-      GPUTextureUsage.COPY_DST |
-      GPUTextureUsage.STORAGE_BINDING,
-  });
-
-const colorTextures = [makeColorTexture(), makeColorTexture()];
-
-const worldSpacePositionTextures = [
-  makeWorldSpacePositionTexture(),
-  makeWorldSpacePositionTexture(),
-];
-
-const accumulatedReprojectionErrorTextures = [
-  makeAccumulatedReprojectionErrorTexture(),
-  makeAccumulatedReprojectionErrorTexture(),
-];
+const textures = [makeEverythingTexture(), makeEverythingTexture()];
 
 const uniformBindGroup = device.createBindGroup({
   label: "bind group for compute shader uniforms",
@@ -157,12 +129,8 @@ const makeTextureFlipFlopBindGroup = (prev: number, curr: number) =>
     label: "bindgroup for flip-flopping textures",
     layout: pipeline.getBindGroupLayout(0),
     entries: [
-      { binding: 0, resource: colorTextures[curr] },
-      { binding: 1, resource: colorTextures[prev] },
-      { binding: 2, resource: worldSpacePositionTextures[curr] },
-      { binding: 3, resource: worldSpacePositionTextures[prev] },
-      { binding: 4, resource: accumulatedReprojectionErrorTextures[curr] },
-      { binding: 5, resource: accumulatedReprojectionErrorTextures[prev] },
+      { binding: 0, resource: textures[curr] },
+      { binding: 1, resource: textures[prev] },
     ],
   });
 
@@ -179,7 +147,7 @@ function loop(t?: number) {
   frameIndex++;
   t ??= 0;
   let currTransform = mulMat4(
-    rotate([0, 1, 0], t * -0.0002),
+    rotate([1, -1, 0], t * -0.0002),
     translate([-0, -0, -3 + t / 5009])
   );
   const buf = makeUniformBuffer<typeof ComputeWGSLJson, 1, 0>(
@@ -220,11 +188,7 @@ function loop(t?: number) {
 
   const currTexIndex = 1 - (frameIndex % 2);
 
-  initBlitToScreen(
-    device,
-    colorTextures[currTexIndex],
-    worldSpacePositionTextures[currTexIndex]
-  )();
+  initBlitToScreen(device, textures[currTexIndex])();
 
   requestAnimationFrame(loop);
 }

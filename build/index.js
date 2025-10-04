@@ -5166,14 +5166,14 @@ function makeUniformBuffer(spec, group, binding, data) {
 }
 
 // raw-ns:/mnt/c/Users/baker/Documents/GitHub/raymarcher-webgpu/src/blit-to-screen.wgsl?raw
-var blit_to_screen_default = "struct VSInput {\r\n  @builtin(vertex_index) vertexIndex: u32,\r\n}\r\n\r\nstruct VSOutput {\r\n  @builtin(position) position: vec4f,\r\n  @location(0) uv: vec2f,\r\n}\r\n\r\n@group(0) @binding(0) var samp : sampler;\r\n@group(0) @binding(1) var color : texture_2d<f32>;\r\n@group(0) @binding(2) var position : texture_2d<f32>;\r\n\r\n@vertex\r\nfn VSMain(input: VSInput) -> VSOutput {\r\n  var vsOut: VSOutput;\r\n\r\n  vsOut.position = vec4(array(\r\n    vec2( 1.0,  1.0),\r\n    vec2( 1.0, -1.0),\r\n    vec2(-1.0, -1.0),\r\n    vec2( 1.0,  1.0),\r\n    vec2(-1.0, -1.0),\r\n    vec2(-1.0,  1.0),\r\n  )[input.vertexIndex], 0.5, 1.0);\r\n\r\n  vsOut.uv = array(\r\n    vec2(1.0, 0.0),\r\n    vec2(1.0, 1.0),\r\n    vec2(0.0, 1.0),\r\n    vec2(1.0, 0.0),\r\n    vec2(0.0, 1.0),\r\n    vec2(0.0, 0.0),\r\n  )[input.vertexIndex];\r\n\r\n  return vsOut;\r\n}\r\n\r\n@fragment\r\nfn FSMain(@location(0) uv: vec2f) -> @location(0) vec4f {\r\n  let pos = textureSample(position, samp, uv);\r\n  return textureSample(color, samp, uv) / max(1.0, pos.w);\r\n  // return vec4f(uv, 0.0, 1.0);\r\n}";
+var blit_to_screen_default = "struct VSInput {\r\n  @builtin(vertex_index) vertexIndex: u32,\r\n}\r\n\r\nstruct VSOutput {\r\n  @builtin(position) position: vec4f,\r\n  @location(0) uv: vec2f,\r\n}\r\n\r\n@group(0) @binding(0) var samp : sampler;\r\n@group(0) @binding(1) var tex : texture_2d_array<f32>;\r\n\r\n@vertex\r\nfn VSMain(input: VSInput) -> VSOutput {\r\n  var vsOut: VSOutput;\r\n\r\n  vsOut.position = vec4(array(\r\n    vec2( 1.0,  1.0),\r\n    vec2( 1.0, -1.0),\r\n    vec2(-1.0, -1.0),\r\n    vec2( 1.0,  1.0),\r\n    vec2(-1.0, -1.0),\r\n    vec2(-1.0,  1.0),\r\n  )[input.vertexIndex], 0.5, 1.0);\r\n\r\n  vsOut.uv = array(\r\n    vec2(1.0, 0.0),\r\n    vec2(1.0, 1.0),\r\n    vec2(0.0, 1.0),\r\n    vec2(1.0, 0.0),\r\n    vec2(0.0, 1.0),\r\n    vec2(0.0, 0.0),\r\n  )[input.vertexIndex];\r\n\r\n  return vsOut;\r\n}\r\n\r\n@fragment\r\nfn FSMain(@location(0) uv: vec2f) -> @location(0) vec4f {\r\n  let pos = textureSample(tex, samp, uv, 1u);\r\n  return textureSample(tex, samp, uv, 0u);\r\n  // return vec4f(uv, 0.0, 1.0);\r\n}";
 
 // src/blit-to-screen.ts
 var canvas = document.createElement("canvas");
 canvas.width = 1024;
 canvas.height = 1024;
 document.body.appendChild(canvas);
-function initBlitToScreen(device2, colorTex, positionTex) {
+function initBlitToScreen(device2, tex) {
   const ctx = canvas.getContext("webgpu");
   const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
   ctx.configure({
@@ -5190,14 +5190,8 @@ function initBlitToScreen(device2, colorTex, positionTex) {
       {
         binding: 1,
         texture: {
-          sampleType: "unfilterable-float"
-        },
-        visibility: GPUShaderStage.FRAGMENT
-      },
-      {
-        binding: 2,
-        texture: {
-          sampleType: "unfilterable-float"
+          sampleType: "unfilterable-float",
+          viewDimension: "2d-array"
         },
         visibility: GPUShaderStage.FRAGMENT
       }
@@ -5233,8 +5227,7 @@ function initBlitToScreen(device2, colorTex, positionTex) {
         binding: 0,
         resource: sampler
       },
-      { binding: 1, resource: colorTex },
-      { binding: 2, resource: positionTex }
+      { binding: 1, resource: tex }
     ]
   });
   return () => {
@@ -5258,10 +5251,10 @@ function initBlitToScreen(device2, colorTex, positionTex) {
 }
 
 // raw-ns:/mnt/c/Users/baker/Documents/GitHub/raymarcher-webgpu/src/compute.wgsl?raw
-var compute_default = "struct B {\r\n  test: array<vec4u, 4>,\r\n}\r\n\r\nstruct Params {\r\n  size: vec2<u32>,\r\n  rand: vec2f,\r\n  transformInv: mat4x4f,\r\n  transform: mat4x4f,\r\n  lastTransformInverse: mat4x4f,\r\n  lastTransform: mat4x4f,\r\n  brightnessFactor: f32\r\n}\r\n\r\n@group(0) @binding(0) var color: texture_storage_2d<rgba32float, write>;\r\n@group(0) @binding(1) var prevColor: texture_storage_2d<rgba32float, read>;\r\n@group(0) @binding(2) var worldSpacePosition: texture_storage_2d<rgba32float, write>;\r\n@group(0) @binding(3) var prevWorldSpacePosition: texture_storage_2d<rgba32float, read>;\r\n@group(0) @binding(4) var accumulatedReprojectionError: texture_storage_2d<rgba32float, write>;\r\n@group(0) @binding(5) var prevAccumulatedReprojectionError: texture_storage_2d<rgba32float, read>;\r\n\r\n@group(1) @binding(0) var<uniform> params : Params;\r\n@group(1) @binding(1) var smpl : sampler;\r\n\r\n\r\nfn rand(co: vec2f) -> f32 {\r\n  return fract(sin(dot(co, vec2f(12.9898, 78.233))) * 43758.5453); \r\n}\r\n\r\n@compute @workgroup_size(8, 8, 1) fn computeSomething(\r\n  @builtin(global_invocation_id) id: vec3<u32>\r\n) {\r\n\r\n  _ = smpl;\r\n  _ = accumulatedReprojectionError;\r\n  _ = prevAccumulatedReprojectionError;\r\n\r\n  var value: vec3f = vec3f(0.0);\r\n\r\n  let idnorm = vec2f(id.xy) / vec2f(params.size.xy);\r\n\r\n  let fractpos = idnorm + vec2f(0.0, 0.0) / vec2f(params.size.xy);\r\n\r\n  _ = textureLoad(prevWorldSpacePosition, id.xy);\r\n  // let prevpos = textureLoad(prevWorldSpacePosition, id.xy);\r\n  // let prevorigin = (vec4f(0.0, 0.0, 0.0, 1.0) * params.lastTransform).xyz;\r\n  // let reprojectedPos = prevpos * params.lastTransformInverse;\r\n  // let sampleCoord = reprojectedPos.xy / reprojectedPos.z;\r\n  // let prevcol = textureSampleLevel(prevColor, smpl, vec2f(sampleCoord * 0.5 + 0.5), 0);\r\n\r\n      var originalPos = (vec4f(0.0, 0.0, 0.0, 1.0) * params.transform).xyz;\r\n      var pos = originalPos;\r\n      var originalDir = (\r\n        vec4(normalize(vec3f(fractpos * 2.0 - 1.0, 1.0)), 0.0) \r\n        * params.transform\r\n      ).xyz;\r\n      var dir = originalDir;\r\n      \r\n      var normal: vec3f;\r\n      var didHit: bool;\r\n      var emission = vec3f(0.0);\r\n      let lightdir = normalize(vec3f(1.0, 1.0, -1.0));\r\n\r\n      for (var i = 0u; i < 1u; i++) {\r\n        let hit = marchRay(pos, dir, 128u);\r\n        pos = hit.pos + hit.normal * 0.001;\r\n        dir = reflect(dir, hit.normal);\r\n        normal = hit.normal;\r\n        didHit = hit.hit;\r\n        emission += abs(dot(lightdir, normal)) * pow(0.5, f32(i) + 1.0);\r\n      }\r\n\r\n      value += select(\r\n        select(vec3f(1.0 * params.brightnessFactor, 0.0, 0.0), vec3f(fract(length(pos)) * 0.5), fract(length(pos) * 1.0) > 0.2),\r\n        vec3f(0.0),\r\n        !didHit || (rand(idnorm + params.rand) > length(emission)),\r\n      );\r\n\r\n  let posInCurrentFramePerspective = vec4f(pos, 1.0) * params.transformInv;\r\n  let posInLastFramePerspective = vec4f(pos, 1.0) * params.lastTransformInverse;\r\n  let lastFrameCoords = posInLastFramePerspective.xy / posInLastFramePerspective.z;\r\n  let lastFrameUV = lastFrameCoords * 0.5 + 0.5;\r\n\r\n  let reprojOffset = (lastFrameUV - fractpos) * 1.0 + vec2(0.5, 0.5) / vec2f(params.size.xy); \r\n  \r\n  let reprojNormalizedPos = fractpos + reprojOffset;\r\n\r\n  let reprojSamplePos = vec2u(\r\n    vec2f(params.size.xy) * reprojNormalizedPos\r\n  );\r\n\r\n  let prevcol = textureLoad(prevColor, reprojSamplePos);\r\n  let prevpos = textureLoad(prevWorldSpacePosition, reprojSamplePos);\r\n\r\n  var reprojFactor = 0.0;\r\n\r\n  let reprojFailed = \r\n    abs(length(prevpos.xyz - pos)) > 0.1\r\n    || reprojNormalizedPos.x > 1.0 \r\n    || reprojNormalizedPos.x < 0.0 \r\n    || reprojNormalizedPos.y > 1.0 \r\n    || reprojNormalizedPos.y < 0.0;\r\n\r\n  if (\r\n    reprojFailed\r\n  ) {\r\n    reprojFactor = 1.0;\r\n  }\r\n\r\n  let currColor = vec4f(value / 1.0, 1.0);\r\n  let mixColor = mix(prevcol + currColor, currColor, reprojFactor);\r\n  // let mixColor = prevcol + currColor;\r\n\r\n  textureStore(color, id.xy, mixColor);\r\n  textureStore(worldSpacePosition, id.xy, vec4f(\r\n    pos,\r\n    select(prevpos.w + 1.0, 0.0, reprojFailed)\r\n  ));\r\n}\r\n\r\nstruct HitInfo {\r\n  hit: bool,\r\n  pos: vec3f,\r\n  normal: vec3f,\r\n}\r\n\r\nfn marchRay(\r\n  pos: vec3f,\r\n  dir: vec3f,\r\n  iters: u32\r\n) -> HitInfo {\r\n  var posTemp = pos;\r\n  for (var i = 0u; i < iters; i++) {\r\n    let dist = sdf(posTemp);\r\n    posTemp += dir * dist;\r\n  }\r\n\r\n  let distSample = sdf(posTemp);\r\n\r\n  let normal = normalize(vec3f(\r\n    sdf(posTemp + vec3f(0.01, 0.0, 0.0)) - distSample,\r\n    sdf(posTemp + vec3f(0.0, 0.01, 0.0)) - distSample,\r\n    sdf(posTemp + vec3f(0.0, 0.0, 0.01)) - distSample,\r\n  ));\r\n\r\n  return HitInfo(\r\n    distSample < 0.01,\r\n    posTemp,\r\n    normal,\r\n  );\r\n}\r\n\r\n// MARCH_FUNCTION ";
+var compute_default = "struct B {\r\n  test: array<vec4u, 4>,\r\n}\r\n\r\nstruct Params {\r\n  size: vec2<u32>,\r\n  rand: vec2f,\r\n  transformInv: mat4x4f,\r\n  transform: mat4x4f,\r\n  lastTransformInverse: mat4x4f,\r\n  lastTransform: mat4x4f,\r\n  brightnessFactor: f32\r\n}\r\n\r\n@group(0) @binding(0) var tex: texture_storage_2d_array<rgba32float, write>;\r\n@group(0) @binding(1) var prevTex: texture_storage_2d_array<rgba32float, read>;\r\n\r\n@group(1) @binding(0) var<uniform> params : Params;\r\n@group(1) @binding(1) var smpl : sampler;\r\n\r\n\r\nfn rand(co: vec2f) -> f32 {\r\n  return fract(sin(dot(co, vec2f(12.9898, 78.233))) * 43758.5453); \r\n}\r\n\r\n@compute @workgroup_size(8, 8, 1) fn computeSomething(\r\n  @builtin(global_invocation_id) id: vec3<u32>\r\n) {\r\n\r\n  _ = smpl;\r\n\r\n  var value: vec3f = vec3f(0.0);\r\n\r\n  let idnorm = vec2f(id.xy) / vec2f(params.size.xy);\r\n\r\n  let fractpos = idnorm + vec2f(0.0, 0.0) / vec2f(params.size.xy);\r\n\r\n\r\n      var originalPos = (vec4f(0.0, 0.0, 0.0, 1.0) * params.transform).xyz;\r\n      var pos = originalPos;\r\n      var originalDir = (\r\n        vec4(normalize(vec3f(fractpos * 2.0 - 1.0, 1.0)), 0.0) \r\n        * params.transform\r\n      ).xyz;\r\n      var dir = originalDir;\r\n      \r\n      var normal: vec3f;\r\n      var didHit: bool;\r\n      var emission = vec3f(0.0);\r\n      let lightdir = normalize(vec3f(1.0, 1.0, -1.0));\r\n      var totaldist = 0.0;\r\n\r\n      for (var i = 0u; i < 4u; i++) {\r\n        let hit = marchRay(pos, dir, 128u);\r\n        totaldist += distance(pos, hit.pos);\r\n        pos = hit.pos + hit.normal * 0.001;\r\n        dir = reflect(dir, normalize(\r\n          hit.normal + vec3f(\r\n            rand(idnorm + params.rand),\r\n            rand(idnorm + params.rand + 1.0),\r\n            rand(idnorm + params.rand + 2.0)\r\n          ) * 0.1\r\n        ));\r\n        normal = hit.normal;\r\n        didHit = hit.hit;\r\n        emission += abs(dot(lightdir, normal)) * pow(0.5, f32(i) + 1.0);\r\n        value += vec3(0.5) * pow(0.5, f32(i)) * max(0.0, dot(normal, dir));\r\n      }\r\n\r\n\r\n  let fwdpos = originalPos + originalDir * totaldist;\r\n\r\n  let posInCurrentFramePerspective = vec4f(fwdpos, 1.0) * params.transformInv;\r\n  let posInLastFramePerspective = vec4f(fwdpos, 1.0) * params.lastTransformInverse;\r\n  let lastFrameCoords = posInLastFramePerspective.xy / posInLastFramePerspective.z;\r\n  let lastFrameUV = lastFrameCoords * 0.5 + 0.5;\r\n  let preverr = textureLoad(prevTex, id.xy, 2u).xy;\r\n\r\n  let reprojOffset = \r\n    modf(\r\n      (lastFrameUV - fractpos) * vec2f(params.size.xy)\r\n      + vec2(0.5, 0.5) * 0.0 \r\n      + preverr\r\n    ); \r\n  \r\n  let reprojSamplePos = vec2i(\r\n    vec2f(id.xy) + reprojOffset.whole\r\n  );\r\n\r\n  let prevcol = textureLoad(prevTex, reprojSamplePos, 0u);\r\n  let prevpos = textureLoad(prevTex, reprojSamplePos, 1u);\r\n\r\n  var reprojFactor = 1.0 / clamp(prevpos.w, 1.0, 30.0);\r\n\r\n  let reprojFailed = \r\n    abs(length(prevpos.xyz - fwdpos)) > 0.2\r\n    || reprojSamplePos.x >= i32(params.size.x)\r\n    || reprojSamplePos.y >= i32(params.size.y)\r\n    || reprojSamplePos.x < 0 \r\n    || reprojSamplePos.y < 0;\r\n\r\n  if (\r\n    reprojFailed\r\n  ) {\r\n    reprojFactor = 1.0;\r\n  }\r\n\r\n  let currColor = vec4f(value / 1.0, 1.0);\r\n  let mixColor = mix(prevcol, currColor, reprojFactor);\r\n  // let mixColor = prevcol + currColor;\r\n\r\n  textureStore(tex, id.xy, 0u, mixColor);\r\n  textureStore(tex, id.xy, 1u, vec4f(\r\n    fwdpos,\r\n    select(prevpos.w + 1.0, 0.0, reprojFailed)\r\n  ));\r\n  textureStore(tex, id.xy, 2u, vec4f(reprojOffset.fract, 0.0, 0.0));\r\n}\r\n\r\nstruct HitInfo {\r\n  hit: bool,\r\n  pos: vec3f,\r\n  normal: vec3f,\r\n}\r\n\r\nfn marchRay(\r\n  pos: vec3f,\r\n  dir: vec3f,\r\n  iters: u32\r\n) -> HitInfo {\r\n  var posTemp = pos;\r\n  for (var i = 0u; i < iters; i++) {\r\n    let dist = sdf(posTemp);\r\n    posTemp += dir * dist;\r\n  }\r\n\r\n  let distSample = sdf(posTemp);\r\n\r\n  let normal = normalize(vec3f(\r\n    sdf(posTemp + vec3f(0.01, 0.0, 0.0)) - distSample,\r\n    sdf(posTemp + vec3f(0.0, 0.01, 0.0)) - distSample,\r\n    sdf(posTemp + vec3f(0.0, 0.0, 0.01)) - distSample,\r\n  ));\r\n\r\n  return HitInfo(\r\n    distSample < 0.01,\r\n    posTemp,\r\n    normal,\r\n  );\r\n}\r\n\r\n// MARCH_FUNCTION ";
 
 // wgsl:/mnt/c/Users/baker/Documents/GitHub/raymarcher-webgpu/src/compute.wgsl
-var compute_default2 = { bindGroups: [[{ name: "color", type: { name: "texture_storage_2d", attributes: [{ id: 105185, line: 15, name: "group", value: "0" }, { id: 105186, line: 15, name: "binding", value: "0" }], size: 0, format: { name: "rgba32float", attributes: null, size: 0 }, access: "write" }, group: 0, binding: 0, attributes: [{ id: 105185, line: 15, name: "group", value: "0" }, { id: 105186, line: 15, name: "binding", value: "0" }], resourceType: 4, access: "read" }, { name: "prevColor", type: { name: "texture_storage_2d", attributes: [{ id: 105189, line: 16, name: "group", value: "0" }, { id: 105190, line: 16, name: "binding", value: "1" }], size: 0, format: { name: "rgba32float", attributes: null, size: 0 }, access: "read" }, group: 0, binding: 1, attributes: [{ id: 105189, line: 16, name: "group", value: "0" }, { id: 105190, line: 16, name: "binding", value: "1" }], resourceType: 4, access: "read" }, { name: "worldSpacePosition", type: { name: "texture_storage_2d", attributes: [{ id: 105193, line: 17, name: "group", value: "0" }, { id: 105194, line: 17, name: "binding", value: "2" }], size: 0, format: { name: "rgba32float", attributes: null, size: 0 }, access: "write" }, group: 0, binding: 2, attributes: [{ id: 105193, line: 17, name: "group", value: "0" }, { id: 105194, line: 17, name: "binding", value: "2" }], resourceType: 4, access: "read" }, { name: "prevWorldSpacePosition", type: { name: "texture_storage_2d", attributes: [{ id: 105197, line: 18, name: "group", value: "0" }, { id: 105198, line: 18, name: "binding", value: "3" }], size: 0, format: { name: "rgba32float", attributes: null, size: 0 }, access: "read" }, group: 0, binding: 3, attributes: [{ id: 105197, line: 18, name: "group", value: "0" }, { id: 105198, line: 18, name: "binding", value: "3" }], resourceType: 4, access: "read" }, { name: "accumulatedReprojectionError", type: { name: "texture_storage_2d", attributes: [{ id: 105201, line: 19, name: "group", value: "0" }, { id: 105202, line: 19, name: "binding", value: "4" }], size: 0, format: { name: "rgba32float", attributes: null, size: 0 }, access: "write" }, group: 0, binding: 4, attributes: [{ id: 105201, line: 19, name: "group", value: "0" }, { id: 105202, line: 19, name: "binding", value: "4" }], resourceType: 4, access: "read" }, { name: "prevAccumulatedReprojectionError", type: { name: "texture_storage_2d", attributes: [{ id: 105205, line: 20, name: "group", value: "0" }, { id: 105206, line: 20, name: "binding", value: "5" }], size: 0, format: { name: "rgba32float", attributes: null, size: 0 }, access: "read" }, group: 0, binding: 5, attributes: [{ id: 105205, line: 20, name: "group", value: "0" }, { id: 105206, line: 20, name: "binding", value: "5" }], resourceType: 4, access: "read" }], [{ name: "params", type: { name: "Params", attributes: null, size: 288, members: [{ name: "size", type: { name: "vec2", attributes: null, size: 8, format: { name: "u32", attributes: null, size: 4 }, access: null }, attributes: null, offset: 0, size: 8 }, { name: "rand", type: { name: "vec2f", attributes: null, size: 8 }, attributes: null, offset: 8, size: 8 }, { name: "transformInv", type: { name: "mat4x4f", attributes: null, size: 64 }, attributes: null, offset: 16, size: 64 }, { name: "transform", type: { name: "mat4x4f", attributes: null, size: 64 }, attributes: null, offset: 80, size: 64 }, { name: "lastTransformInverse", type: { name: "mat4x4f", attributes: null, size: 64 }, attributes: null, offset: 144, size: 64 }, { name: "lastTransform", type: { name: "mat4x4f", attributes: null, size: 64 }, attributes: null, offset: 208, size: 64 }, { name: "brightnessFactor", type: { name: "f32", attributes: null, size: 4 }, attributes: null, offset: 272, size: 4 }], align: 16, startLine: 5, endLine: 13, inUse: true }, group: 1, binding: 0, attributes: [{ id: 105209, line: 22, name: "group", value: "1" }, { id: 105210, line: 22, name: "binding", value: "0" }], resourceType: 0, access: "read" }, { name: "smpl", type: { name: "sampler", attributes: [{ id: 105212, line: 23, name: "group", value: "1" }, { id: 105213, line: 23, name: "binding", value: "1" }], size: 0, format: null, access: null }, group: 1, binding: 1, attributes: [{ id: 105212, line: 23, name: "group", value: "1" }, { id: 105213, line: 23, name: "binding", value: "1" }], resourceType: 3, access: "" }]] };
+var compute_default2 = { bindGroups: [[{ name: "tex", type: { name: "texture_storage_2d_array", attributes: [{ id: 130606, line: 15, name: "group", value: "0" }, { id: 130607, line: 15, name: "binding", value: "0" }], size: 0, format: { name: "rgba32float", attributes: null, size: 0 }, access: "write" }, group: 0, binding: 0, attributes: [{ id: 130606, line: 15, name: "group", value: "0" }, { id: 130607, line: 15, name: "binding", value: "0" }], resourceType: 4, access: "read" }, { name: "prevTex", type: { name: "texture_storage_2d_array", attributes: [{ id: 130610, line: 16, name: "group", value: "0" }, { id: 130611, line: 16, name: "binding", value: "1" }], size: 0, format: { name: "rgba32float", attributes: null, size: 0 }, access: "read" }, group: 0, binding: 1, attributes: [{ id: 130610, line: 16, name: "group", value: "0" }, { id: 130611, line: 16, name: "binding", value: "1" }], resourceType: 4, access: "read" }], [{ name: "params", type: { name: "Params", attributes: null, size: 288, members: [{ name: "size", type: { name: "vec2", attributes: null, size: 8, format: { name: "u32", attributes: null, size: 4 }, access: null }, attributes: null, offset: 0, size: 8 }, { name: "rand", type: { name: "vec2f", attributes: null, size: 8 }, attributes: null, offset: 8, size: 8 }, { name: "transformInv", type: { name: "mat4x4f", attributes: null, size: 64 }, attributes: null, offset: 16, size: 64 }, { name: "transform", type: { name: "mat4x4f", attributes: null, size: 64 }, attributes: null, offset: 80, size: 64 }, { name: "lastTransformInverse", type: { name: "mat4x4f", attributes: null, size: 64 }, attributes: null, offset: 144, size: 64 }, { name: "lastTransform", type: { name: "mat4x4f", attributes: null, size: 64 }, attributes: null, offset: 208, size: 64 }, { name: "brightnessFactor", type: { name: "f32", attributes: null, size: 4 }, attributes: null, offset: 272, size: 4 }], align: 16, startLine: 5, endLine: 13, inUse: true }, group: 1, binding: 0, attributes: [{ id: 130614, line: 18, name: "group", value: "1" }, { id: 130615, line: 18, name: "binding", value: "0" }], resourceType: 0, access: "read" }, { name: "smpl", type: { name: "sampler", attributes: [{ id: 130617, line: 19, name: "group", value: "1" }, { id: 130618, line: 19, name: "binding", value: "1" }], size: 0, format: null, access: null }, group: 1, binding: 1, attributes: [{ id: 130617, line: 19, name: "group", value: "1" }, { id: 130618, line: 19, name: "binding", value: "1" }], resourceType: 3, access: "" }]] };
 
 // node_modules/ml-matrix/matrix.mjs
 var matrix = __toESM(require_matrix(), 1);
@@ -5338,30 +5331,13 @@ var uniformBuffer = device.createBuffer({
 });
 var width = 1024;
 var height = 1024;
-var makeColorTexture = () => device.createTexture({
-  size: [width, height, 1],
+var makeEverythingTexture = () => device.createTexture({
+  size: [width, height, 3],
   format: "rgba32float",
+  dimension: "2d",
   usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.STORAGE_BINDING
 });
-var makeWorldSpacePositionTexture = () => device.createTexture({
-  size: [width, height, 1],
-  format: "rgba32float",
-  usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.STORAGE_BINDING
-});
-var makeAccumulatedReprojectionErrorTexture = () => device.createTexture({
-  size: [width, height, 1],
-  format: "rgba32float",
-  usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.STORAGE_BINDING
-});
-var colorTextures = [makeColorTexture(), makeColorTexture()];
-var worldSpacePositionTextures = [
-  makeWorldSpacePositionTexture(),
-  makeWorldSpacePositionTexture()
-];
-var accumulatedReprojectionErrorTextures = [
-  makeAccumulatedReprojectionErrorTexture(),
-  makeAccumulatedReprojectionErrorTexture()
-];
+var textures = [makeEverythingTexture(), makeEverythingTexture()];
 var uniformBindGroup = device.createBindGroup({
   label: "bind group for compute shader uniforms",
   layout: pipeline.getBindGroupLayout(1),
@@ -5380,12 +5356,8 @@ var makeTextureFlipFlopBindGroup = (prev, curr) => device.createBindGroup({
   label: "bindgroup for flip-flopping textures",
   layout: pipeline.getBindGroupLayout(0),
   entries: [
-    { binding: 0, resource: colorTextures[curr] },
-    { binding: 1, resource: colorTextures[prev] },
-    { binding: 2, resource: worldSpacePositionTextures[curr] },
-    { binding: 3, resource: worldSpacePositionTextures[prev] },
-    { binding: 4, resource: accumulatedReprojectionErrorTextures[curr] },
-    { binding: 5, resource: accumulatedReprojectionErrorTextures[prev] }
+    { binding: 0, resource: textures[curr] },
+    { binding: 1, resource: textures[prev] }
   ]
 });
 var textureFlipFlopBindGroups = [
@@ -5398,7 +5370,7 @@ function loop(t) {
   frameIndex++;
   t ??= 0;
   let currTransform = mulMat4(
-    rotate([0, 1, 0], t * -2e-4),
+    rotate([1, -1, 0], t * -2e-4),
     translate([-0, -0, -3 + t / 5009])
   );
   const buf = makeUniformBuffer(
@@ -5431,11 +5403,7 @@ function loop(t) {
   const commandBuffer = encoder.finish();
   device.queue.submit([commandBuffer]);
   const currTexIndex = 1 - frameIndex % 2;
-  initBlitToScreen(
-    device,
-    colorTextures[currTexIndex],
-    worldSpacePositionTextures[currTexIndex]
-  )();
+  initBlitToScreen(device, textures[currTexIndex])();
   requestAnimationFrame(loop);
 }
 loop();

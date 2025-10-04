@@ -12,12 +12,8 @@ struct Params {
   brightnessFactor: f32
 }
 
-@group(0) @binding(0) var color: texture_storage_2d<rgba32float, write>;
-@group(0) @binding(1) var prevColor: texture_storage_2d<rgba32float, read>;
-@group(0) @binding(2) var worldSpacePosition: texture_storage_2d<rgba32float, write>;
-@group(0) @binding(3) var prevWorldSpacePosition: texture_storage_2d<rgba32float, read>;
-@group(0) @binding(4) var accumulatedReprojectionError: texture_storage_2d<rgba32float, write>;
-@group(0) @binding(5) var prevAccumulatedReprojectionError: texture_storage_2d<rgba32float, read>;
+@group(0) @binding(0) var tex: texture_storage_2d_array<rgba32float, write>;
+@group(0) @binding(1) var prevTex: texture_storage_2d_array<rgba32float, read>;
 
 @group(1) @binding(0) var<uniform> params : Params;
 @group(1) @binding(1) var smpl : sampler;
@@ -32,8 +28,6 @@ fn rand(co: vec2f) -> f32 {
 ) {
 
   _ = smpl;
-  _ = accumulatedReprojectionError;
-  _ = prevAccumulatedReprojectionError;
 
   var value: vec3f = vec3f(0.0);
 
@@ -41,12 +35,6 @@ fn rand(co: vec2f) -> f32 {
 
   let fractpos = idnorm + vec2f(0.0, 0.0) / vec2f(params.size.xy);
 
-  _ = textureLoad(prevWorldSpacePosition, id.xy);
-  // let prevpos = textureLoad(prevWorldSpacePosition, id.xy);
-  // let prevorigin = (vec4f(0.0, 0.0, 0.0, 1.0) * params.lastTransform).xyz;
-  // let reprojectedPos = prevpos * params.lastTransformInverse;
-  // let sampleCoord = reprojectedPos.xy / reprojectedPos.z;
-  // let prevcol = textureSampleLevel(prevColor, smpl, vec2f(sampleCoord * 0.5 + 0.5), 0);
 
       var originalPos = (vec4f(0.0, 0.0, 0.0, 1.0) * params.transform).xyz;
       var pos = originalPos;
@@ -60,46 +48,56 @@ fn rand(co: vec2f) -> f32 {
       var didHit: bool;
       var emission = vec3f(0.0);
       let lightdir = normalize(vec3f(1.0, 1.0, -1.0));
+      var totaldist = 0.0;
 
-      for (var i = 0u; i < 1u; i++) {
+      for (var i = 0u; i < 4u; i++) {
         let hit = marchRay(pos, dir, 128u);
+        totaldist += distance(pos, hit.pos);
         pos = hit.pos + hit.normal * 0.001;
-        dir = reflect(dir, hit.normal);
+        dir = reflect(dir, normalize(
+          hit.normal + vec3f(
+            rand(idnorm + params.rand),
+            rand(idnorm + params.rand + 1.0),
+            rand(idnorm + params.rand + 2.0)
+          ) * 0.1
+        ));
         normal = hit.normal;
         didHit = hit.hit;
         emission += abs(dot(lightdir, normal)) * pow(0.5, f32(i) + 1.0);
+        value += vec3(0.5) * pow(0.5, f32(i)) * max(0.0, dot(normal, dir));
       }
 
-      value += select(
-        select(vec3f(1.0 * params.brightnessFactor, 0.0, 0.0), vec3f(fract(length(pos)) * 0.5), fract(length(pos) * 1.0) > 0.2),
-        vec3f(0.0),
-        !didHit || (rand(idnorm + params.rand) > length(emission)),
-      );
 
-  let posInCurrentFramePerspective = vec4f(pos, 1.0) * params.transformInv;
-  let posInLastFramePerspective = vec4f(pos, 1.0) * params.lastTransformInverse;
+  let fwdpos = originalPos + originalDir * totaldist;
+
+  let posInCurrentFramePerspective = vec4f(fwdpos, 1.0) * params.transformInv;
+  let posInLastFramePerspective = vec4f(fwdpos, 1.0) * params.lastTransformInverse;
   let lastFrameCoords = posInLastFramePerspective.xy / posInLastFramePerspective.z;
   let lastFrameUV = lastFrameCoords * 0.5 + 0.5;
+  let preverr = textureLoad(prevTex, id.xy, 2u).xy;
 
-  let reprojOffset = (lastFrameUV - fractpos) * 1.0 + vec2(0.5, 0.5) / vec2f(params.size.xy); 
+  let reprojOffset = 
+    modf(
+      (lastFrameUV - fractpos) * vec2f(params.size.xy)
+      + vec2(0.5, 0.5) * 0.0 
+      + preverr
+    ); 
   
-  let reprojNormalizedPos = fractpos + reprojOffset;
-
-  let reprojSamplePos = vec2u(
-    vec2f(params.size.xy) * reprojNormalizedPos
+  let reprojSamplePos = vec2i(
+    vec2f(id.xy) + reprojOffset.whole
   );
 
-  let prevcol = textureLoad(prevColor, reprojSamplePos);
-  let prevpos = textureLoad(prevWorldSpacePosition, reprojSamplePos);
+  let prevcol = textureLoad(prevTex, reprojSamplePos, 0u);
+  let prevpos = textureLoad(prevTex, reprojSamplePos, 1u);
 
-  var reprojFactor = 0.0;
+  var reprojFactor = 1.0 / clamp(prevpos.w, 1.0, 30.0);
 
   let reprojFailed = 
-    abs(length(prevpos.xyz - pos)) > 0.1
-    || reprojNormalizedPos.x > 1.0 
-    || reprojNormalizedPos.x < 0.0 
-    || reprojNormalizedPos.y > 1.0 
-    || reprojNormalizedPos.y < 0.0;
+    abs(length(prevpos.xyz - fwdpos)) > 0.2
+    || reprojSamplePos.x >= i32(params.size.x)
+    || reprojSamplePos.y >= i32(params.size.y)
+    || reprojSamplePos.x < 0 
+    || reprojSamplePos.y < 0;
 
   if (
     reprojFailed
@@ -108,14 +106,15 @@ fn rand(co: vec2f) -> f32 {
   }
 
   let currColor = vec4f(value / 1.0, 1.0);
-  let mixColor = mix(prevcol + currColor, currColor, reprojFactor);
+  let mixColor = mix(prevcol, currColor, reprojFactor);
   // let mixColor = prevcol + currColor;
 
-  textureStore(color, id.xy, mixColor);
-  textureStore(worldSpacePosition, id.xy, vec4f(
-    pos,
+  textureStore(tex, id.xy, 0u, mixColor);
+  textureStore(tex, id.xy, 1u, vec4f(
+    fwdpos,
     select(prevpos.w + 1.0, 0.0, reprojFailed)
   ));
+  textureStore(tex, id.xy, 2u, vec4f(reprojOffset.fract, 0.0, 0.0));
 }
 
 struct HitInfo {

@@ -5,11 +5,7 @@ canvas.width = 1024;
 canvas.height = 1024;
 document.body.appendChild(canvas);
 
-export function initBlitToScreen(
-  device: GPUDevice,
-  colorTex: GPUTexture,
-  positionTex: GPUTexture
-) {
+export function initBlitToScreen(device: GPUDevice, tex: GPUTexture) {
   const ctx = canvas.getContext("webgpu");
 
   const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
@@ -30,13 +26,7 @@ export function initBlitToScreen(
         binding: 1,
         texture: {
           sampleType: "unfilterable-float",
-        },
-        visibility: GPUShaderStage.FRAGMENT,
-      },
-      {
-        binding: 2,
-        texture: {
-          sampleType: "unfilterable-float",
+          viewDimension: "2d-array",
         },
         visibility: GPUShaderStage.FRAGMENT,
       },
@@ -75,8 +65,7 @@ export function initBlitToScreen(
         binding: 0,
         resource: sampler,
       },
-      { binding: 1, resource: colorTex },
-      { binding: 2, resource: positionTex },
+      { binding: 1, resource: tex },
     ],
   });
 

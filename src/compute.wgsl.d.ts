@@ -3,18 +3,18 @@ declare module "compute.wgsl" {
   "bindGroups": [
     [
       {
-        "name": "color",
+        "name": "tex",
         "type": {
-          "name": "texture_storage_2d",
+          "name": "texture_storage_2d_array",
           "attributes": [
             {
-              "id": 105185,
+              "id": 130606,
               "line": 15,
               "name": "group",
               "value": "0"
             },
             {
-              "id": 105186,
+              "id": 130607,
               "line": 15,
               "name": "binding",
               "value": "0"
@@ -32,13 +32,13 @@ declare module "compute.wgsl" {
         "binding": 0,
         "attributes": [
           {
-            "id": 105185,
+            "id": 130606,
             "line": 15,
             "name": "group",
             "value": "0"
           },
           {
-            "id": 105186,
+            "id": 130607,
             "line": 15,
             "name": "binding",
             "value": "0"
@@ -48,18 +48,18 @@ declare module "compute.wgsl" {
         "access": "read"
       },
       {
-        "name": "prevColor",
+        "name": "prevTex",
         "type": {
-          "name": "texture_storage_2d",
+          "name": "texture_storage_2d_array",
           "attributes": [
             {
-              "id": 105189,
+              "id": 130610,
               "line": 16,
               "name": "group",
               "value": "0"
             },
             {
-              "id": 105190,
+              "id": 130611,
               "line": 16,
               "name": "binding",
               "value": "1"
@@ -77,196 +77,16 @@ declare module "compute.wgsl" {
         "binding": 1,
         "attributes": [
           {
-            "id": 105189,
+            "id": 130610,
             "line": 16,
             "name": "group",
             "value": "0"
           },
           {
-            "id": 105190,
+            "id": 130611,
             "line": 16,
             "name": "binding",
             "value": "1"
-          }
-        ],
-        "resourceType": 4,
-        "access": "read"
-      },
-      {
-        "name": "worldSpacePosition",
-        "type": {
-          "name": "texture_storage_2d",
-          "attributes": [
-            {
-              "id": 105193,
-              "line": 17,
-              "name": "group",
-              "value": "0"
-            },
-            {
-              "id": 105194,
-              "line": 17,
-              "name": "binding",
-              "value": "2"
-            }
-          ],
-          "size": 0,
-          "format": {
-            "name": "rgba32float",
-            "attributes": null,
-            "size": 0
-          },
-          "access": "write"
-        },
-        "group": 0,
-        "binding": 2,
-        "attributes": [
-          {
-            "id": 105193,
-            "line": 17,
-            "name": "group",
-            "value": "0"
-          },
-          {
-            "id": 105194,
-            "line": 17,
-            "name": "binding",
-            "value": "2"
-          }
-        ],
-        "resourceType": 4,
-        "access": "read"
-      },
-      {
-        "name": "prevWorldSpacePosition",
-        "type": {
-          "name": "texture_storage_2d",
-          "attributes": [
-            {
-              "id": 105197,
-              "line": 18,
-              "name": "group",
-              "value": "0"
-            },
-            {
-              "id": 105198,
-              "line": 18,
-              "name": "binding",
-              "value": "3"
-            }
-          ],
-          "size": 0,
-          "format": {
-            "name": "rgba32float",
-            "attributes": null,
-            "size": 0
-          },
-          "access": "read"
-        },
-        "group": 0,
-        "binding": 3,
-        "attributes": [
-          {
-            "id": 105197,
-            "line": 18,
-            "name": "group",
-            "value": "0"
-          },
-          {
-            "id": 105198,
-            "line": 18,
-            "name": "binding",
-            "value": "3"
-          }
-        ],
-        "resourceType": 4,
-        "access": "read"
-      },
-      {
-        "name": "accumulatedReprojectionError",
-        "type": {
-          "name": "texture_storage_2d",
-          "attributes": [
-            {
-              "id": 105201,
-              "line": 19,
-              "name": "group",
-              "value": "0"
-            },
-            {
-              "id": 105202,
-              "line": 19,
-              "name": "binding",
-              "value": "4"
-            }
-          ],
-          "size": 0,
-          "format": {
-            "name": "rgba32float",
-            "attributes": null,
-            "size": 0
-          },
-          "access": "write"
-        },
-        "group": 0,
-        "binding": 4,
-        "attributes": [
-          {
-            "id": 105201,
-            "line": 19,
-            "name": "group",
-            "value": "0"
-          },
-          {
-            "id": 105202,
-            "line": 19,
-            "name": "binding",
-            "value": "4"
-          }
-        ],
-        "resourceType": 4,
-        "access": "read"
-      },
-      {
-        "name": "prevAccumulatedReprojectionError",
-        "type": {
-          "name": "texture_storage_2d",
-          "attributes": [
-            {
-              "id": 105205,
-              "line": 20,
-              "name": "group",
-              "value": "0"
-            },
-            {
-              "id": 105206,
-              "line": 20,
-              "name": "binding",
-              "value": "5"
-            }
-          ],
-          "size": 0,
-          "format": {
-            "name": "rgba32float",
-            "attributes": null,
-            "size": 0
-          },
-          "access": "read"
-        },
-        "group": 0,
-        "binding": 5,
-        "attributes": [
-          {
-            "id": 105205,
-            "line": 20,
-            "name": "group",
-            "value": "0"
-          },
-          {
-            "id": 105206,
-            "line": 20,
-            "name": "binding",
-            "value": "5"
           }
         ],
         "resourceType": 4,
@@ -374,14 +194,14 @@ declare module "compute.wgsl" {
         "binding": 0,
         "attributes": [
           {
-            "id": 105209,
-            "line": 22,
+            "id": 130614,
+            "line": 18,
             "name": "group",
             "value": "1"
           },
           {
-            "id": 105210,
-            "line": 22,
+            "id": 130615,
+            "line": 18,
             "name": "binding",
             "value": "0"
           }
@@ -395,14 +215,14 @@ declare module "compute.wgsl" {
           "name": "sampler",
           "attributes": [
             {
-              "id": 105212,
-              "line": 23,
+              "id": 130617,
+              "line": 19,
               "name": "group",
               "value": "1"
             },
             {
-              "id": 105213,
-              "line": 23,
+              "id": 130618,
+              "line": 19,
               "name": "binding",
               "value": "1"
             }
@@ -415,14 +235,14 @@ declare module "compute.wgsl" {
         "binding": 1,
         "attributes": [
           {
-            "id": 105212,
-            "line": 23,
+            "id": 130617,
+            "line": 19,
             "name": "group",
             "value": "1"
           },
           {
-            "id": 105213,
-            "line": 23,
+            "id": 130618,
+            "line": 19,
             "name": "binding",
             "value": "1"
           }
