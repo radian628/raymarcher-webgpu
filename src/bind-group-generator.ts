@@ -124,10 +124,6 @@ function getWgslPrimitiveSize(typename: string) {
   if (typename.startsWith("vec3")) return 3;
   if (typename.startsWith("vec4")) return 4;
 
-  if (typename.startsWith("mat2")) return 4;
-  if (typename.startsWith("mat3")) return 9;
-  if (typename.startsWith("mat4")) return 16;
-
   if (typename.startsWith("mat2x3")) return 6;
   if (typename.startsWith("mat3x2")) return 6;
 
@@ -136,6 +132,10 @@ function getWgslPrimitiveSize(typename: string) {
 
   if (typename.startsWith("mat3x4")) return 12;
   if (typename.startsWith("mat4x3")) return 12;
+
+  if (typename.startsWith("mat2")) return 4;
+  if (typename.startsWith("mat3")) return 9;
+  if (typename.startsWith("mat4")) return 16;
 
   return 1;
 }
