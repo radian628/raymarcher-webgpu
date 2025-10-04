@@ -1,3 +1,4 @@
+import { rotate, translate } from "../r628/src/webgl/mesh";
 import { range } from "../r628/src/range";
 import {
   generateUniformBuffer,
@@ -6,6 +7,8 @@ import {
 import { initBlitToScreen } from "./blit-to-screen";
 import ComputeShader from "./compute.wgsl?raw";
 import ComputeWGSLJson from "compute.wgsl";
+import { mulMat4 } from "../r628/src/math/vector";
+import { inv4 } from "./matrix-inverse";
 
 function fail(msg: string) {
   window.alert(msg);
@@ -47,6 +50,8 @@ fn sdf(
 ) -> f32 {
   let postemp = grid(pos, vec3(3.0));
   return distance(postemp, vec3f(0.0)) - 1.2;  
+
+  // return -pos.y + 1.0;
 }
 
   `
@@ -63,7 +68,7 @@ const pipeline = device.createComputePipeline({
 
 const uniformBuffer = device.createBuffer({
   label: "uniform buffer",
-  size: 160,
+  size: 1024,
   usage:
     GPUBufferUsage.STORAGE |
     GPUBufferUsage.COPY_DST |
@@ -73,30 +78,6 @@ const uniformBuffer = device.createBuffer({
 
 const width = 1024;
 const height = 1024;
-
-const buf = makeUniformBuffer<typeof ComputeWGSLJson, 0, 1>(
-  ComputeWGSLJson,
-  0,
-  1,
-  {
-    size: [width, height],
-    b: {
-      test: [
-        [1, 2, 3, 4],
-        [69, 69, 123, 456],
-        [9, 7, 5, 3],
-        [2, 4, 6, 8],
-      ],
-    },
-    deeznuts: [1.0, 2.5, 3.14, 2.718],
-    mvp: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1],
-  }
-);
-
-console.log(new Uint32Array(buf));
-console.log(new Float32Array(buf));
-
-device.queue.writeBuffer(uniformBuffer, 0, buf);
 
 // const input = new Float32Array(range(64));
 
@@ -114,41 +95,138 @@ device.queue.writeBuffer(uniformBuffer, 0, buf);
 //   size: input.byteLength,
 //   usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
 // });
-const resultTexture = device.createTexture({
-  size: [width, height, 1],
-  format: "rgba8unorm",
-  usage:
-    GPUTextureUsage.TEXTURE_BINDING |
-    GPUTextureUsage.COPY_DST |
-    GPUTextureUsage.STORAGE_BINDING,
-});
+const makeColorTexture = () =>
+  device.createTexture({
+    size: [width, height, 1],
+    format: "rgba32float",
+    usage:
+      GPUTextureUsage.TEXTURE_BINDING |
+      GPUTextureUsage.COPY_DST |
+      GPUTextureUsage.STORAGE_BINDING,
+  });
 
-const bindGroup = device.createBindGroup({
-  label: "bindgroup for work buffer",
-  layout: pipeline.getBindGroupLayout(0),
+const makeWorldSpacePositionTexture = () =>
+  device.createTexture({
+    size: [width, height, 1],
+    format: "rgba32float",
+    usage:
+      GPUTextureUsage.TEXTURE_BINDING |
+      GPUTextureUsage.COPY_DST |
+      GPUTextureUsage.STORAGE_BINDING,
+  });
+
+const makeAccumulatedReprojectionErrorTexture = () =>
+  device.createTexture({
+    size: [width, height, 1],
+    format: "rgba32float",
+    usage:
+      GPUTextureUsage.TEXTURE_BINDING |
+      GPUTextureUsage.COPY_DST |
+      GPUTextureUsage.STORAGE_BINDING,
+  });
+
+const colorTextures = [makeColorTexture(), makeColorTexture()];
+
+const worldSpacePositionTextures = [
+  makeWorldSpacePositionTexture(),
+  makeWorldSpacePositionTexture(),
+];
+
+const accumulatedReprojectionErrorTextures = [
+  makeAccumulatedReprojectionErrorTexture(),
+  makeAccumulatedReprojectionErrorTexture(),
+];
+
+const uniformBindGroup = device.createBindGroup({
+  label: "bind group for compute shader uniforms",
+  layout: pipeline.getBindGroupLayout(1),
   entries: [
-    { binding: 0, resource: resultTexture },
+    { binding: 0, resource: uniformBuffer },
     {
       binding: 1,
-      resource: uniformBuffer,
+      resource: device.createSampler({
+        minFilter: "linear",
+        magFilter: "linear",
+      }),
     },
   ],
 });
 
-const encoder = device.createCommandEncoder({
-  label: "doubling encoder",
-});
+const makeTextureFlipFlopBindGroup = (prev: number, curr: number) =>
+  device.createBindGroup({
+    label: "bindgroup for flip-flopping textures",
+    layout: pipeline.getBindGroupLayout(0),
+    entries: [
+      { binding: 0, resource: colorTextures[curr] },
+      { binding: 1, resource: colorTextures[prev] },
+      { binding: 2, resource: worldSpacePositionTextures[curr] },
+      { binding: 3, resource: worldSpacePositionTextures[prev] },
+      { binding: 4, resource: accumulatedReprojectionErrorTextures[curr] },
+      { binding: 5, resource: accumulatedReprojectionErrorTextures[prev] },
+    ],
+  });
 
-const pass = encoder.beginComputePass({
-  label: "doubling compute pass",
-});
+const textureFlipFlopBindGroups = [
+  makeTextureFlipFlopBindGroup(0, 1),
+  makeTextureFlipFlopBindGroup(1, 0),
+];
 
-pass.setPipeline(pipeline);
-pass.setBindGroup(0, bindGroup);
-pass.dispatchWorkgroups(width / 8, height / 8);
-pass.end();
+let frameIndex = 0;
 
-const commandBuffer = encoder.finish();
-device.queue.submit([commandBuffer]);
+let lastTransform = rotate([0, 1, 0], 0);
 
-initBlitToScreen(device, resultTexture)();
+function loop(t?: number) {
+  frameIndex++;
+  t ??= 0;
+  let currTransform = mulMat4(
+    rotate([0, 1, 0], t * -0.0002),
+    translate([-0, -0, -3 + t / 5009])
+  );
+  const buf = makeUniformBuffer<typeof ComputeWGSLJson, 1, 0>(
+    ComputeWGSLJson,
+    1,
+    0,
+    {
+      size: [width, height],
+      rand: [Math.random(), Math.random()],
+      transformInv: inv4(currTransform),
+      transform: currTransform,
+      lastTransformInverse: inv4(lastTransform),
+      lastTransform: lastTransform,
+      brightnessFactor: frameIndex % 70 === 1 || true ? 1 : 0,
+    }
+  );
+
+  lastTransform = currTransform;
+
+  device.queue.writeBuffer(uniformBuffer, 0, buf);
+
+  const encoder = device.createCommandEncoder({
+    label: "raymarch encoder",
+  });
+
+  const pass = encoder.beginComputePass({
+    label: "raymarch compute pass",
+  });
+
+  pass.setPipeline(pipeline);
+  pass.setBindGroup(0, textureFlipFlopBindGroups[frameIndex % 2]);
+  pass.setBindGroup(1, uniformBindGroup);
+  pass.dispatchWorkgroups(width / 8, height / 8);
+  pass.end();
+
+  const commandBuffer = encoder.finish();
+  device.queue.submit([commandBuffer]);
+
+  const currTexIndex = 1 - (frameIndex % 2);
+
+  initBlitToScreen(
+    device,
+    colorTextures[currTexIndex],
+    worldSpacePositionTextures[currTexIndex]
+  )();
+
+  requestAnimationFrame(loop);
+}
+
+loop();

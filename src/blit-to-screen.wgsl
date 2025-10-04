@@ -7,8 +7,9 @@ struct VSOutput {
   @location(0) uv: vec2f,
 }
 
-@group(0) @binding(0) var mySampler : sampler;
-@group(0) @binding(1) var myTexture : texture_2d<f32>;
+@group(0) @binding(0) var samp : sampler;
+@group(0) @binding(1) var color : texture_2d<f32>;
+@group(0) @binding(2) var position : texture_2d<f32>;
 
 @vertex
 fn VSMain(input: VSInput) -> VSOutput {
@@ -37,6 +38,7 @@ fn VSMain(input: VSInput) -> VSOutput {
 
 @fragment
 fn FSMain(@location(0) uv: vec2f) -> @location(0) vec4f {
-  return textureSample(myTexture, mySampler, uv);
+  let pos = textureSample(position, samp, uv);
+  return textureSample(color, samp, uv) / max(1.0, pos.w);
   // return vec4f(uv, 0.0, 1.0);
 }
